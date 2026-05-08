@@ -6,11 +6,12 @@ const {
     register,
     login,
     refreshAccessToken,
-    logout
+    logout,
+    getMe 
 } = require('../controllers/authController');
 
 const validate = require('../middleware/validationMiddleware');
-
+const { authMiddleware } = require('../middleware/authMiddleware');
 const {
     registerValidator,
     loginValidator
@@ -132,5 +133,5 @@ router.post(
     '/logout',
     logout
 );
-
+router.get("/me", authMiddleware, getMe);
 module.exports = router;

@@ -92,8 +92,15 @@ const AdminDashboard = () => {
     };
     fetchZones();
     // Setup Socket.IO connection for live feed
+    const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+
     const socket = io(
       import.meta.env.VITE_SOCKET_URL || "http://localhost:5000",
+      {
+        auth: {
+          token: userInfo?.token,
+        },
+      },
     );
     socket.on("newAttendanceLog", (log) => {
       console.log("New attendance log received:", log);
@@ -105,7 +112,7 @@ const AdminDashboard = () => {
     });
     socket.on("staleUserDetected", (data) => {
       setStaleUsers((prev) => {
-        const exists = prev.some((u) => u._id === data._id);
+        const exists = prev.some((u) => (u._id||u.userId) === data.userId);
 
         if (exists) return prev;
 
@@ -242,11 +249,11 @@ const AdminDashboard = () => {
           ))}
 
           {/* Draw the Live Punches */}
-          {liveFeed.map((log, idx) => {
+          {liveFeed.map((log) => {
             if (!log.recordedLocation) return null;
             return (
               <Marker
-                key={`punch-${idx}`}
+                key={log._id || `${log.user?._id}-${log.createdAt}`}
                 position={[
                   log.recordedLocation.latitude,
                   log.recordedLocation.longitude,
@@ -368,7 +375,7 @@ const AdminDashboard = () => {
             ) : (
               staleUsers.map((user) => (
                 <div
-                  key={user._id}
+                  key={user._id||user.userId}
                   className="p-4 rounded-lg border border-red-200 bg-red-50"
                 >
                   <div className="font-bold text-slate-800">{user.name}</div>
@@ -425,9 +432,9 @@ const AdminDashboard = () => {
                   {liveFeed
                     .filter((log) => log.nearestZone?._id === selectedZone._id)
                     .slice(0, 5)
-                    .map((log, idx) => (
+                    .map((log) => (
                       <div
-                        key={idx}
+                        key={log._id || `${log.user?._id}-${log.createdAt}`}
                         className="text-sm p-2 rounded bg-slate-50 border"
                       >
                         <span className="font-bold">{log.user?.name}</span>
@@ -452,9 +459,9 @@ const AdminDashboard = () => {
             {liveFeed.length === 0 ? (
               <p className="text-slate-500">Waiting for field activity...</p>
             ) : (
-              liveFeed.map((log, index) => (
+              liveFeed.map((log) => (
                 <div
-                  key={index}
+                  key={log._id || `${log.user?._id}-${log.createdAt}`}
                   className={`p-4 rounded-lg border ${log.status === "Success" ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}
                 >
                   <div className="font-bold text-slate-800">

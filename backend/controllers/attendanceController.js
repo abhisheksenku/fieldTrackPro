@@ -36,7 +36,11 @@ const handlePunch = async (req, res) => {
     const { latitude, longitude, action } = req.body;
     const userId = req.user._id;
 
-    if (!latitude || !longitude || !action) {
+    if (
+      typeof latitude !== "number" ||
+      typeof longitude !== "number" ||
+      !action
+    ) {
       return res
         .status(400)
         .json({ message: "GPS coordinates and action are required." });
@@ -131,7 +135,7 @@ const handlePunch = async (req, res) => {
 
     const io = req.app.get("io");
     if (io) {
-      io.emit("newAttendanceLog", populatedLog);
+      io.to("admin-room").emit("newAttendanceLog", populatedLog);
     }
 
     // 6. Respond based on status
@@ -232,7 +236,7 @@ const handleRemotePing = async (req, res) => {
     const { latitude, longitude } = req.body;
     const userId = req.user._id;
 
-    if (!latitude || !longitude) {
+    if (typeof latitude !== "number" || typeof longitude !== "number") {
       return res
         .status(400)
         .json({ message: "Latitude and longitude are required." });
@@ -257,7 +261,7 @@ const handleRemotePing = async (req, res) => {
     // 3. Broadcast instantly to the Admin Map
     const io = req.app.get("io");
     if (io) {
-      io.emit("liveLocationUpdate", {
+      io.to("admin-room").emit("liveLocationUpdate", {
         userId,
         name: req.user.name,
         latitude,
@@ -372,7 +376,7 @@ ${user.lastPing}
       const io = req.app.get("io");
 
       if (io) {
-        io.emit("staleUserDetected", {
+        io.to("admin-room").emit("staleUserDetected", {
           userId: user._id,
           name: user.name,
           email: user.email,
@@ -429,6 +433,25 @@ const exportAttendanceCSV = async (req, res) => {
     });
   }
 };
+const getMyLogs = async (req, res) => {
+  try {
+    const logs = await Attendance.find({
+      user: req.user._id,
+    })
+      .populate("nearestZone", "name")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      logs,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Failed to fetch your attendance logs",
+    });
+  }
+};
 module.exports = {
   handlePunch,
   getLogs,
@@ -436,4 +459,5 @@ module.exports = {
   updateLogStatus,
   getStaleUsers,
   exportAttendanceCSV,
+  getMyLogs,
 };

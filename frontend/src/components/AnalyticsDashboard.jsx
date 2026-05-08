@@ -83,7 +83,16 @@ const AnalyticsDashboard = () => {
     fetchAnalytics();
 
     // SOCKET CONNECTION
-    const socket = io(import.meta.env.VITE_SOCKET_URL);
+    const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+
+    const socket = io(
+      import.meta.env.VITE_SOCKET_URL || "http://localhost:5000",
+      {
+        auth: {
+          token: userInfo?.token,
+        },
+      },
+    );
 
     socket.on("staleUserDetected", (data) => {
       console.log("Stale User:", data);
@@ -91,7 +100,7 @@ const AnalyticsDashboard = () => {
       setStaleAnalytics((prev) => {
         if (!prev) return prev;
 
-        const exists = prev.users.some((u) => u._id === data._id);
+        const exists = prev.users.some((u) => u._id === data.userId);
 
         if (exists) return prev;
 

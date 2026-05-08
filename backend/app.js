@@ -12,6 +12,7 @@ const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
 const cookieParser = require("cookie-parser");
 const logger = require("./utils/logger");
+const configureSocket = require("./sockets/socketHandler");
 dotenv.config();
 connectDB();
 
@@ -26,12 +27,7 @@ const io = new Server(server, {
 });
 app.set("io", io); // Make io accessible in routes/controllers via req.app.get('io')
 startStaleUserChecker(io); // Start the stale user checker with the Socket.IO instance
-io.on("connection", (socket) => {
-  logger.info("New client connected: " + socket.id);
-  socket.on("disconnect", () => {
-    logger.info("Client disconnected: " + socket.id);
-  });
-});
+configureSocket(io); // Configure the Socket.IO instance with the handler
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(cookieParser());
