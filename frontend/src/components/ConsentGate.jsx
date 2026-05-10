@@ -12,16 +12,22 @@ const ConsentGate = ({ children }) => {
 
   const handleAgree = async () => {
     try {
-      // SAVE CONSENT TO BACKEND
       await api.post("/consent");
 
-      // SAVE LOCALLY
       localStorage.setItem("fieldtrack_consent", "true");
-
       setHasConsented(true);
 
       toast.success("Consent recorded");
     } catch (error) {
+      // Consent already exists in backend
+      if (error.response?.status === 400) {
+        localStorage.setItem("fieldtrack_consent", "true");
+        setHasConsented(true);
+
+        toast.success("Consent already exists");
+        return;
+      }
+
       console.error(error);
 
       toast.error(error.response?.data?.message || "Failed to record consent");
