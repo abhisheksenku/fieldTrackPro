@@ -32,5 +32,20 @@ const saveConsent = async (req, res) => {
         });
     }
 };
+const getConsentStatus = async (req, res) => {
+  try {
+    const consent = await Consent.findOne({
+      user: req.user._id,
+      consentGiven: true,
+    });
 
-module.exports = { saveConsent };
+    res.json({
+      hasConsent: !!consent,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+module.exports = { saveConsent, getConsentStatus };

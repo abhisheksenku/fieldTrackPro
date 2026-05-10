@@ -1,20 +1,45 @@
-import React, { useState } from "react";
-
+import React, { useState, useEffect } from "react";
 import api from "../utils/api";
-
 import toast from "react-hot-toast";
 
 const ConsentGate = ({ children }) => {
-  // CHECK LOCAL CONSENT
+  // INITIALIZE FROM LOCAL STORAGE
   const [hasConsented, setHasConsented] = useState(
     localStorage.getItem("fieldtrack_consent") === "true",
   );
 
+  const [loading, setLoading] = useState(true);
+
+  // VERIFY CONSENT FROM BACKEND
+  useEffect(() => {
+    const checkConsent = async () => {
+      try {
+        const { data } = await api.get("/consent");
+
+        if (data.hasConsent) {
+          localStorage.setItem("fieldtrack_consent", "true");
+          setHasConsented(true);
+        } else {
+          localStorage.removeItem("fieldtrack_consent");
+          setHasConsented(false);
+        }
+      } catch (error) {
+        console.error("Consent check failed:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkConsent();
+  }, []);
+
+  // HANDLE CONSENT ACCEPT
   const handleAgree = async () => {
     try {
       await api.post("/consent");
 
       localStorage.setItem("fieldtrack_consent", "true");
+
       setHasConsented(true);
 
       toast.success("Consent recorded");
@@ -22,9 +47,11 @@ const ConsentGate = ({ children }) => {
       // Consent already exists in backend
       if (error.response?.status === 400) {
         localStorage.setItem("fieldtrack_consent", "true");
+
         setHasConsented(true);
 
         toast.success("Consent already exists");
+
         return;
       }
 
@@ -33,6 +60,15 @@ const ConsentGate = ({ children }) => {
       toast.error(error.response?.data?.message || "Failed to record consent");
     }
   };
+
+  // PREVENT FLASH WHILE VERIFYING
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-slate-900 flex items-center justify-center text-white z-[9999]">
+        <div className="text-lg font-semibold animate-pulse">Loading...</div>
+      </div>
+    );
+  }
 
   // BLOCK APP UNTIL CONSENT
   if (!hasConsented) {
