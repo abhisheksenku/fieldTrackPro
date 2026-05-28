@@ -55,6 +55,17 @@ const auditLogRoutes = require("./routes/auditLogRoutes");
 app.use("/api/audit-logs", auditLogRoutes);
 const analyticsRoutes = require("./routes/analyticsRoutes");
 app.use("/api/analytics", analyticsRoutes);
+// Health check endpoint
+app.get("/health", (req, res) => {
+
+  res.status(200).json({
+    status: "OK",
+    uptime: process.uptime(),
+    timestamp: Date.now(),
+    websocketClients: io.engine.clientsCount
+  });
+
+});
 // Global error handler
 app.use((err, req, res, next) => {
   logger.error({
